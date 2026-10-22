@@ -6,13 +6,13 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   base: "/CryptoTracker/",
   plugins: [react(), tailwindcss()],
-  // server: {
-  //   proxy: {
-  //     "/api": {
-  //       target: "https://api.coingecko.com/api/v3",
-  //       changeOrigin: true,
-  //       rewrite: (path) => path.replace(/^\/api/, ""),
-  //     },
-  //   },
-  // },
+  server: {
+    proxy: {
+      "/api": {
+        target: "https://api.coingecko.com/api/v3",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, ""),
+      },
+    },
+  },
 });

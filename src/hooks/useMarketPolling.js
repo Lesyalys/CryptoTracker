@@ -18,7 +18,6 @@ export function useMarketPolling() {
 
   const started = useRef(false);
 
-  // 1. Стартовая загрузка — ровно один раз
   useEffect(() => {
     if (started.current) return;
     started.current = true;
@@ -28,7 +27,6 @@ export function useMarketPolling() {
     };
   }, [loadInitial]);
 
-  // 2. Таймер автообновления — пересоздаётся при смене интервала
   useEffect(() => {
     const interval =
       lastErrorKind === "rate-limit"

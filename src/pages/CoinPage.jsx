@@ -9,6 +9,7 @@ import { PriceChart } from "../components/coin/PriceChart";
 import { TimeframeSwitcher } from "../components/coin/TimeframeSwitcher";
 import { Converter } from "../components/coin/Converter";
 import { CoinFallbackBanner } from "../components/coin/CoinFallbackBanner";
+import { BackLink } from "../components/ui/BackLink";
 
 export function CoinPage() {
   const { id } = useParams();
@@ -90,7 +91,7 @@ export function CoinPage() {
   return (
     <div className="space-y-6">
       {showFallbackBanner && <CoinFallbackBanner />}
-
+      <BackLink />
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <img

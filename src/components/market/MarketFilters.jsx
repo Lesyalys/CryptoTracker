@@ -1,10 +1,6 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMarketStore } from "../../store/useMarketStore";
-import { useDebouncedValue } from "../../hooks/useDebouncedValue";
-import { DEBOUNCE_DELAY_MS } from "../../constants";
-
-const inputCls =
-  "w-full rounded-lg bg-slate-900 px-3 py-2 text-sm ring-1 ring-slate-800 focus:outline-none focus:ring-indigo-500";
+import { useDebouncedCallback } from "../../hooks/useDebouncedCallback";
 
 export function MarketFilters() {
   const filters = useMarketStore((s) => s.filters);
@@ -14,45 +10,52 @@ export function MarketFilters() {
   const [priceMin, setPriceMin] = useState(filters.priceMin?.toString() ?? "");
   const [priceMax, setPriceMax] = useState(filters.priceMax?.toString() ?? "");
 
-  const debouncedSearch = useDebouncedValue(search, DEBOUNCE_DELAY_MS);
-  const debouncedMin = useDebouncedValue(priceMin, DEBOUNCE_DELAY_MS);
-  const debouncedMax = useDebouncedValue(priceMax, DEBOUNCE_DELAY_MS);
+  // Своя функция debounce из lib/debounce.js, обёрнутая в хук
+  const commitSearch = useDebouncedCallback((q) => {
+    setFilter("search", q.trim());
+  }, 300);
 
-  useEffect(
-    () => setFilter("search", debouncedSearch.trim()),
-    [debouncedSearch, setFilter],
-  );
-  useEffect(
-    () => setFilter("priceMin", debouncedMin ? Number(debouncedMin) : null),
-    [debouncedMin, setFilter],
-  );
-  useEffect(
-    () => setFilter("priceMax", debouncedMax ? Number(debouncedMax) : null),
-    [debouncedMax, setFilter],
-  );
+  const commitPriceMin = useDebouncedCallback((v) => {
+    setFilter("priceMin", v ? Number(v) : null);
+  }, 300);
+
+  const commitPriceMax = useDebouncedCallback((v) => {
+    setFilter("priceMax", v ? Number(v) : null);
+  }, 300);
 
   return (
     <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
       <input
         value={search}
-        onChange={(e) => setSearch(e.target.value)}
+        onChange={(e) => {
+          setSearch(e.target.value);
+          commitSearch(e.target.value);
+        }}
         placeholder="Поиск по названию…"
-        className={inputCls}
+        className="..."
         type="search"
       />
       <input
         value={priceMin}
-        onChange={(e) => setPriceMin(e.target.value.replace(/[^\d.]/g, ""))}
+        onChange={(e) => {
+          const v = e.target.value.replace(/[^\d.]/g, "");
+          setPriceMin(v);
+          commitPriceMin(v);
+        }}
         placeholder="Цена от, $"
         inputMode="decimal"
-        className={inputCls}
+        className="..."
       />
       <input
         value={priceMax}
-        onChange={(e) => setPriceMax(e.target.value.replace(/[^\d.]/g, ""))}
+        onChange={(e) => {
+          const v = e.target.value.replace(/[^\d.]/g, "");
+          setPriceMax(v);
+          commitPriceMax(v);
+        }}
         placeholder="Цена до, $"
         inputMode="decimal"
-        className={inputCls}
+        className="..."
       />
     </div>
   );
