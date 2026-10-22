@@ -3,9 +3,9 @@ import { Link, useParams } from "react-router-dom";
 import { coinGeckoApi } from "../api/coingecko";
 import { useMarketStore } from "../store/useMarketStore";
 import { notify } from "../store/useNotifyStore";
-import { formatCurrency, formatPercent } from "../lib/format";
+// import { formatCurrency, formatPercent } from "../lib/format";
 import { PriceChart } from "../components/coin/PriceChart";
-import { TimeframeSwitcher } from "../components/coin/TimeframeSwitcher";
+// import { TimeframeSwitcher } from "../components/coin/TimeframeSwitcher";
 import { Converter } from "../components/coin/Converter";
 
 export function CoinPage() {
@@ -65,9 +65,9 @@ export function CoinPage() {
     );
   }
 
-  const change = coin.price_change_percentage_24h;
-  const changeClass =
-    change == null ? "text-slate-400" : change >= 0 ? "text-up" : "text-down";
+  // const change = coin.price_change_percentage_24h;
+  // const changeClass =
+  //   change == null ? "text-slate-400" : change >= 0 ? "text-up" : "text-down";
 
   return (
     <div className="space-y-6">
