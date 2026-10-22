@@ -11,22 +11,50 @@ import { Button } from "../components/ui/Button";
 
 export function PortfolioPage() {
   const coins = useMarketStore((s) => s.coins);
+  const coinsFallback = useMarketStore((s) => s.coinsFallback);
+  const loading = useMarketStore((s) => s.loading);
+
   const transactions = usePortfolioStore((s) => s.transactions);
-  const removeTransaction = usePortfolioStore((s) => s.removeTransaction);
+  const removeByCoinId = usePortfolioStore((s) => s.removeByCoinId);
 
   const summary = useMemo(() => {
     const prices = buildPricesMap(coins);
     return calculatePortfolio(transactions, prices);
   }, [transactions, coins]);
 
+  if (loading && !coins.length) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold">Портфель</h1>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl bg-slate-800"
+            />
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-bold">Портфель</h1>
 
+      {coinsFallback && (
+        <div
+          role="alert"
+          className="rounded-xl border border-amber-500/50 bg-amber-950/60 px-4 py-3 text-sm text-amber-100"
+        >
+          ⚠ Цены в портфеле — офлайн-снапшот. PnL может быть неточным.
+        </div>
+      )}
+
       <PortfolioStats summary={summary} />
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="md:col-span-1">
+        <div className="md:col-span-1 md:self-start">
           <PortfolioForm />
         </div>
         <div className="md:col-span-2">
@@ -69,7 +97,7 @@ export function PortfolioPage() {
                     {h.amount}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
-                    {formatCurrency(h.currentPrice)}
+                    {h.hasPrice ? formatCurrency(h.currentPrice) : "—"}
                   </td>
                   <td className="px-3 py-2 text-right tabular-nums">
                     {formatCurrency(h.currentValue)}
@@ -84,11 +112,7 @@ export function PortfolioPage() {
                   <td className="px-3 py-2 text-right">
                     <Button
                       variant="danger"
-                      onClick={() =>
-                        transactions
-                          .filter((t) => t.coinId === h.coinId)
-                          .forEach((t) => removeTransaction(t.id))
-                      }
+                      onClick={() => removeByCoinId(h.coinId)}
                     >
                       Удалить
                     </Button>

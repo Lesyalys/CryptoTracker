@@ -2,48 +2,57 @@ import { create } from "zustand";
 
 const generateId = () =>
   `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-
 const DEFAULT_TIMEOUT = 6000;
+const DEFAULT_DEDUPE_WINDOW = 10_000;
+
+const timers = new Map();
 
 export const useNotifyStore = create((set, get) => ({
   notifications: [],
 
-  /**
-   * @param {'error'|'warn'|'success'|'info'} type
-   * @param {string} title
-   * @param {string} [message]
-   * @param {{ persistent?: boolean, timeout?: number }} [opts]
-   */
   notify: (type, title, message, opts = {}) => {
-    const id = generateId();
-    const timeout = opts.persistent ? null : (opts.timeout ?? DEFAULT_TIMEOUT);
-    const item = { id, type, title, message, createdAt: Date.now() };
     const now = Date.now();
+    const key = opts.key ?? `${type}:${title}:${message}`;
+    const window = opts.dedupeWindow ?? DEFAULT_DEDUPE_WINDOW;
+
     const duplicate = get().notifications.find(
-      (n) =>
-        n.type === type &&
-        n.title === title &&
-        n.message === message &&
-        now - n.createdAt < 10_000,
+      (n) => n.key === key && now - n.createdAt < window,
     );
     if (duplicate) return duplicate.id;
+
+    const id = generateId();
+    const timeout = opts.persistent ? null : (opts.timeout ?? DEFAULT_TIMEOUT);
+    const item = { id, key, type, title, message, createdAt: now };
 
     set((s) => ({ notifications: [...s.notifications, item] }));
 
     if (timeout != null) {
-      setTimeout(() => get().dismiss(id), timeout);
+      const timerId = setTimeout(() => {
+        get().dismiss(id);
+        timers.delete(id);
+      }, timeout);
+      timers.set(id, timerId);
     }
 
     return id;
   },
 
-  dismiss: (id) =>
-    set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) })),
+  dismiss: (id) => {
+    const timerId = timers.get(id);
+    if (timerId) {
+      clearTimeout(timerId);
+      timers.delete(id);
+    }
+    set((s) => ({ notifications: s.notifications.filter((n) => n.id !== id) }));
+  },
 
-  clear: () => set({ notifications: [] }),
+  clear: () => {
+    for (const timerId of timers.values()) clearTimeout(timerId);
+    timers.clear();
+    set({ notifications: [] });
+  },
 }));
 
-// Удобные хелперы — чтобы не писать notify('error', ...) вручную
 export const notify = {
   error: (title, message, opts) =>
     useNotifyStore.getState().notify("error", title, message, opts),

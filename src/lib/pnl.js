@@ -1,8 +1,3 @@
-/**
- * Считает агрегированный портфель по транзакциям и текущим ценам.
- * @param {Array} transactions
- * @param {Record<string, number>} prices — карта coinId -> current_price
- */
 export function calculatePortfolio(transactions, prices) {
   const grouped = new Map();
 
@@ -25,10 +20,14 @@ export function calculatePortfolio(transactions, prices) {
   let totalInvested = 0;
 
   for (const [coinId, { amount, invested, tx }] of grouped) {
-    const currentPrice = prices[coinId] ?? invested / amount;
+    const price = prices[coinId];
+    const hasPrice = price != null;
+    const currentPrice = hasPrice ? price : invested / amount;
     const currentValue = amount * currentPrice;
+
     totalValue += currentValue;
     totalInvested += invested;
+
     holdings.push({
       coinId,
       coinName: tx.coinName,
@@ -37,12 +36,14 @@ export function calculatePortfolio(transactions, prices) {
       invested,
       currentPrice,
       currentValue,
+      hasPrice,
       pnl: currentValue - invested,
       pnlPercent: invested ? ((currentValue - invested) / invested) * 100 : 0,
     });
   }
 
   const totalPnl = totalValue - totalInvested;
+
   return {
     holdings: holdings.sort((a, b) => b.currentValue - a.currentValue),
     totalValue,

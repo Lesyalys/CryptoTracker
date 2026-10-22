@@ -3,6 +3,9 @@ import { useMarketStore } from "../../store/useMarketStore";
 import { usePortfolioStore } from "../../store/usePortfolioStore";
 import { Button } from "../ui/Button";
 
+const inputCls =
+  "w-full rounded-lg bg-slate-800 px-3 py-2 text-sm ring-1 ring-slate-700 focus:outline-none focus:ring-indigo-500";
+
 export function PortfolioForm() {
   const coins = useMarketStore((s) => s.coins);
   const addTransaction = usePortfolioStore((s) => s.addTransaction);
@@ -29,15 +32,14 @@ export function PortfolioForm() {
     setBuyPrice("");
   };
 
-  const inputCls =
-    "w-full rounded-lg bg-slate-800 px-3 py-2 text-sm ring-1 ring-slate-700 focus:outline-none focus:ring-indigo-500";
-
   return (
     <form
       onSubmit={handleSubmit}
       className="space-y-3 rounded-xl bg-slate-900 p-4 ring-1 ring-slate-800"
     >
       <p className="text-sm font-medium">Добавить транзакцию</p>
+
+      {/* Только крипта: список монет из market store */}
       <select
         value={coinId}
         onChange={(e) => setCoinId(e.target.value)}
@@ -50,6 +52,7 @@ export function PortfolioForm() {
           </option>
         ))}
       </select>
+
       <input
         value={amount}
         onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}

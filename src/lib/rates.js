@@ -1,4 +1,13 @@
-import { RATES_KEY, PATH, TTL, SYMBOLS } from "../constants/index";
+import { RATES_KEY, RATES_URL, RATES_TTL, SYMBOLS } from "../constants";
+
+export class RateError extends Error {
+  constructor(message, status, kind) {
+    super(message);
+    this.name = "RateError";
+    this.status = status;
+    this.kind = kind; // 'rate-limit' | 'network' | 'server'
+  }
+}
 
 /**
  * Клиент курсов валют. Все курсы нормализованы к 1 единице валюты
@@ -10,11 +19,36 @@ class RatesClient {
   }
 
   async _fetchRates() {
-    const response = await fetch(PATH);
-    if (!response.ok) {
-      throw new Error(`Не удалось загрузить курсы: ${response.status}`);
+    let response;
+    try {
+      response = await fetch(RATES_URL);
+    } catch {
+      throw new RateError(
+        "Не удалось связаться с сервером ЦБ. Проверьте интернет.",
+        0,
+        "network",
+      );
     }
+
+    if (!response.ok) {
+      const kind = response.status === 429 ? "rate-limit" : "server";
+      throw new RateError(
+        response.status === 429
+          ? "Превышен лимит запросов к ЦБ. Попробуйте позже."
+          : `Сервер ЦБ вернул ошибку ${response.status}.`,
+        response.status,
+        kind,
+      );
+    }
+
     const data = await response.json();
+    if (!data || typeof data !== "object" || !data.Valute) {
+      throw new RateError(
+        "Некорректный ответ от сервера ЦБ.",
+        response.status,
+        "server",
+      );
+    }
 
     const result = {
       RUB: { name: "Российский рубль", symbol: "₽", rate: 1 },
@@ -39,7 +73,7 @@ class RatesClient {
       const cached = JSON.parse(raw);
       if (!cached?.data || !cached?.timestamp) return null;
       const age = Date.now() - cached.timestamp;
-      return age < TTL ? cached.data : null;
+      return age < RATES_TTL ? cached.data : null;
     } catch {
       return null;
     }
@@ -52,14 +86,10 @@ class RatesClient {
         JSON.stringify({ data, timestamp: Date.now() }),
       );
     } catch {
-      /* localStorage может быть недоступен — не критично */
+      /* noop */
     }
   }
 
-  /**
-   * Возвращает курсы. Кэш (TTL 1ч) → сеть. Параллельные вызовы
-   * дедуплицируются: уйдёт только один HTTP-запрос.
-   */
   async load() {
     const cached = this._readCache();
     if (cached) return cached;
@@ -78,23 +108,13 @@ class RatesClient {
     return this._inflight;
   }
 
-  /**
-   * Конвертирует сумму из одной валюты в другую по курсам ЦБ.
-   * @param {number} value
-   * @param {string} from — код валюты (USD, EUR, RUB, ...)
-   * @param {string} to   — код валюты
-   * @param {Record<string, {rate: number}>} rates
-   */
   convert(value, from, to, rates) {
     if (!Number.isFinite(value) || value <= 0) return null;
     const f = rates[from];
     const t = rates[to];
     if (!f || !t) return null;
-    // rate = рублей за 1 единицу. Значит: value * f.rate — в рублях,
-    // делим на t.rate — получаем в целевой валюте.
     return (value * f.rate) / t.rate;
   }
 }
 
 export const ratesClient = new RatesClient();
-export { SYMBOLS, RATES_KEY };
